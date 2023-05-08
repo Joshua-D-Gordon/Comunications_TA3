@@ -15,30 +15,41 @@ class Receiver:
                 s.listen()
                 conn, addr = s.accept()
                 with conn:
-                    print('Connected by', addr)
-                    start_time = time.time()
-                    data = conn.recv(self.chunk_size)
-                    f.write(data)
-                    conn.sendall(b'AUTHENTICATED')
-                    response = conn.recv(self.chunk_size)
-                    if response.decode() == 'RESEND':
-                        conn.sendall(b'OK')
+                    while True:
+                        print('Connected by', addr)
+                        start_time = time.time()
                         data = conn.recv(self.chunk_size)
                         f.write(data)
                         conn.sendall(b'AUTHENTICATED')
                         response = conn.recv(self.chunk_size)
-                        if response.decode() == 'OK':
+                        if b'\r\n' in data:
+                            break
+                    
+                    while True:
+                        if response.decode() == 'RESEND':
+                            conn.sendall(b'OK')
+                            data = conn.recv(self.chunk_size)
+                            f.write(data)
+                            conn.sendall(b'AUTHENTICATED')
+                            response = conn.recv(self.chunk_size)
+                            if response.decode() == 'OK':
+                                end_time = time.time()
+                                conn.sendall(b'OK')
+                                print(f'File received successfully in {end_time - start_time:.2f} seconds.')
+                            else:
+                                print('Error: failed to send the response.')
+                        elif response.decode() == 'BYE':
                             end_time = time.time()
                             conn.sendall(b'OK')
                             print(f'File received successfully in {end_time - start_time:.2f} seconds.')
-                        else:
-                            print('Error: failed to send the response.')
-                    elif response.decode() == 'BYE':
+                            break
+                    if response.decode() == 'OK':
                         end_time = time.time()
                         conn.sendall(b'OK')
                         print(f'File received successfully in {end_time - start_time:.2f} seconds.')
                     else:
-                        print('Error: invalid response from the sender.')
+                        print('Error: failed to send the response.')
+                        
 
 
 def main():

@@ -45,8 +45,8 @@ class Sender:
         print(f"Authentication received for first half: {auth}")
 
         # set packet loss level
-        s.setsockopt(socket.SOL_TCP, socket.TCP_RETRANSMISSION, self.packet_loss)
-        print(f"Packet loss level set to {self.packet_loss}%")
+        #s.setsockopt(socket.SOL_TCP, socket.TCP_RETRANSMISSION, self.packet_loss)
+        #print(f"Packet loss level set to {self.packet_loss}%")
 
         # send second half of the file
         start_time = time.time()
@@ -62,19 +62,19 @@ class Sender:
         send_again = input("Do you want to send the file again? (y/n) ")
         if send_again.lower() == 'y':
             # notify the receiver
-            s.sendall(b"send again")
+            s.sendall(b"RESEND")
             print("Notified receiver to send again.")
 
             # change back CC algorithm
-            s.setsockopt(socket.SOL_TCP, socket.TCP_CONGESTION, b"cubic")
-            print("CC algorithm changed back to cubic.")
+            #s.setsockopt(socket.SOL_TCP, socket.TCP_CONGESTION, b"cubic")
+            #print("CC algorithm changed back to cubic.")
 
             # close the connection and send file again
             s.close()
             self.send_file()
         else:
             # say bye to the receiver and close the connection
-            s.sendall(b"exit")
+            s.sendall(b"BYE")
             print("Sent exit message to receiver.")
             s.close()
 
