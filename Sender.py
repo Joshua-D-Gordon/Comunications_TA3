@@ -21,9 +21,10 @@ class Sender:
                 f.write(random.choice(string.ascii_letters))
 
     def send_file(self):
+        
         # read the file
         filesize = os.path.getsize(self.filename)
-        first_half = int(filesize / 2)
+        first_half = int(filesize // 2)
         with open(self.filename, 'rb') as f:
             data = f.read()
             first_data = data[:first_half]
@@ -33,9 +34,17 @@ class Sender:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((self.host, self.port))
         print(f"Connected to {self.host}:{self.port}")
-
-        # send first half of the file
+        
+        filesize = os.path.getsize(self.filename)
+        first_half = int(filesize // 2)
+        with open(self.filename, 'rb') as f:
+            data = f.read()
+            first_data = data[:first_half]
+            second_data = data[first_half:]
+        #send length of file
         start_time = time.time()
+        s.sendall(str(filesize).encode())
+        # send first half of the file
         s.sendall(first_data)
         end_time = time.time()
         print(f"Sent first half of file in {end_time - start_time} seconds.")
@@ -64,7 +73,7 @@ class Sender:
             # notify the receiver
             s.sendall(b"RESEND")
             print("Notified receiver to send again.")
-
+            auth = s.recv(1024)
             # change back CC algorithm
             #s.setsockopt(socket.SOL_TCP, socket.TCP_CONGESTION, b"cubic")
             #print("CC algorithm changed back to cubic.")
@@ -76,6 +85,7 @@ class Sender:
             # say bye to the receiver and close the connection
             s.sendall(b"BYE")
             print("Sent exit message to receiver.")
+            auth = s.recv(1024)
             s.close()
 
 

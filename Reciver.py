@@ -7,6 +7,7 @@ class Receiver:
         self.host = host
         self.port = port
         self.chunk_size = 1024
+        self.log = []
 
     def run(self):
         with open(self.filename, 'wb') as f:
@@ -15,42 +16,59 @@ class Receiver:
                 s.listen()
                 conn, addr = s.accept()
                 with conn:
+                    print('Connected by', addr)
+                    start_time = time.time()
+                    file_size_str = conn.recv(self.chunk_size)
+                    file_size = int(file_size_str.decode())
+                    first_half_size = file_size//2
+                    total_recived = 0
                     while True:
-                        print('Connected by', addr)
-                        start_time = time.time()
                         data = conn.recv(self.chunk_size)
                         f.write(data)
-                        conn.sendall(b'AUTHENTICATED')
-                        response = conn.recv(self.chunk_size)
-                        if b'\r\n' in data:
-                            break
-                    
-                    while True:
-                        if response.decode() == 'RESEND':
-                            conn.sendall(b'OK')
-                            data = conn.recv(self.chunk_size)
-                            f.write(data)
+                        total_recived+=len(data)
+                        if total_recived == first_half_size:
                             conn.sendall(b'AUTHENTICATED')
+                            end_time_first_half = time.time()
+                            first_half_time = end_time_first_half - start_time
+                            #appending data to log
+                            self.log.append(first_half_time)
+                        if total_recived == file_size:
+                            conn.sendall(b'AUTHENTICATED')
+                            end_second_half_time = time.time()
+                            second_half_time = end_second_half_time - end_time_first_half
+                            self.log.append(second_half_time)
+                            print('file recived')
                             response = conn.recv(self.chunk_size)
-                            if response.decode() == 'OK':
+                            if response.decode() == 'RESEND':
+                                
+                                conn.sendall(b'OK')
+                                s.close()
+                                self.run()
+                            elif response.decode() == 'BYE':
                                 end_time = time.time()
                                 conn.sendall(b'OK')
-                                print(f'File received successfully in {end_time - start_time:.2f} seconds.')
-                            else:
-                                print('Error: failed to send the response.')
-                        elif response.decode() == 'BYE':
-                            end_time = time.time()
-                            conn.sendall(b'OK')
-                            print(f'File received successfully in {end_time - start_time:.2f} seconds.')
-                            break
-                    if response.decode() == 'OK':
-                        end_time = time.time()
-                        conn.sendall(b'OK')
-                        print(f'File received successfully in {end_time - start_time:.2f} seconds.')
-                    else:
-                        print('Error: failed to send the response.')
-                        
+                                avg_first = 0
+                                avg_second = 0
+                                count = 0
+                                total = 0
+                                for i in range(len(self.log)):
+                                    if i % 2 == 0:
+                                        print(f'first half iteration {int((i+1)/2)+1} sent successfully in {self.log[i]} seconds.')
+                                        avg_first+=self.log[i]
+                                    else:
+                                        print(f'second half iteration {int(i/2)+1} sent successfully in {self.log[i]} seconds.')
+                                        avg_second+=self.log[i]
 
+                                    count+=1
+                                    if i == 0:
+                                        total+=self.log[i]
+                                    else:
+                                        total+= self.log[i-1]+self.log[i]
+                                print('*************************************************************************')
+                                print(f'first half avg: sent successfully in {avg_first/(count/2)} seconds.')
+                                print(f'second half avg: sent successfully in {avg_second/(count/2)} seconds.')
+                                print(f'total avg: sent successfully in {total/(count)} seconds.')
+                                break
 
 def main():
 
