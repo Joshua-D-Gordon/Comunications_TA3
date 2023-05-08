@@ -10,7 +10,7 @@ class Sender:
         self.host = host
         self.port = port
         self.filename = filename
-        #random size between 3MB - 6MB
+        #random size between 3MB - 6MB file size of chars
         mb_size = random.randint(3,6)*1024*1024
         self.create_random_file(mb_size)
         self.packet_loss = 0
@@ -37,6 +37,7 @@ class Sender:
         
         filesize = os.path.getsize(self.filename)
         first_half = int(filesize // 2)
+        #open and read file to data
         with open(self.filename, 'rb') as f:
             data = f.read()
             first_data = data[:first_half]
@@ -52,10 +53,6 @@ class Sender:
         # receive authentication for first half
         auth = s.recv(1024)
         print(f"Authentication received for first half: {auth}")
-
-        # set packet loss level
-        #s.setsockopt(socket.SOL_TCP, socket.TCP_RETRANSMISSION, self.packet_loss)
-        #print(f"Packet loss level set to {self.packet_loss}%")
 
         # send second half of the file
         start_time = time.time()
