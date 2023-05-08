@@ -2,12 +2,14 @@ import socket
 import time
 
 class Receiver:
-    def __init__(self, filename, host, port):
+    def __init__(self, filename, host, port, id_1, id_2):
         self.filename = filename
         self.host = host
         self.port = port
         self.chunk_size = 1024
         self.log = []
+        self.xor = bin(int(id_1)^int(id_2))[2:]
+        self.auth = str(self.xor).encode()
 
     def run(self):
         with open(self.filename, 'wb') as f:
@@ -27,13 +29,13 @@ class Receiver:
                         f.write(data)
                         total_recived+=len(data)
                         if total_recived == first_half_size:
-                            conn.sendall(b'AUTHENTICATED')
+                            conn.sendall(self.auth)
                             end_time_first_half = time.time()
                             first_half_time = end_time_first_half - start_time
                             #appending data to log
                             self.log.append(first_half_time)
                         if total_recived == file_size:
-                            conn.sendall(b'AUTHENTICATED')
+                            conn.sendall(self.auth)
                             end_second_half_time = time.time()
                             second_half_time = end_second_half_time - end_time_first_half
                             self.log.append(second_half_time)
@@ -76,7 +78,7 @@ def main():
     host = "127.0.0.1"  # Use your own IP address or hostname
     port = 9999 # Use any available port number
 
-    r1 = Receiver(filename, host, port)
+    r1 = Receiver(filename, host, port, '332307073', '334307083')
     r1.run()
 
 
